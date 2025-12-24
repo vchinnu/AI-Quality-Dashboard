@@ -1,0 +1,13 @@
+model,prompt,response,score,metric,timestamp
+gpt-4,What is the capital of France?,The capital of France is Paris.,0.95,accuracy,2024-12-24T10:00:00
+gpt-3.5-turbo,What is the capital of France?,Paris is the capital city of France.,0.92,accuracy,2024-12-24T10:01:00
+claude-3,Explain quantum computing briefly.,Quantum computing uses quantum mechanical phenomena like superposition and entanglement to process information in ways classical computers cannot.,0.88,relevance,2024-12-24T10:02:00
+gpt-4,Explain quantum computing briefly.,Quantum computing is a type of computation that harnesses quantum mechanics to solve problems faster than classical computers.,0.90,relevance,2024-12-24T10:03:00
+gpt-3.5-turbo,Write a haiku about technology.,Code flows like water / Through circuits of silicon / Digital zen blooms,0.85,coherence,2024-12-24T10:04:00
+claude-3,Write a haiku about technology.,Bytes dance in silence / Screens glow with electric dreams / Future unfolds here,0.87,coherence,2024-12-24T10:05:00
+gpt-4,What are the benefits of renewable energy?,Renewable energy offers environmental benefits by reducing carbon emissions and provides long-term economic advantages through sustainable resource utilization.,0.93,fluency,2024-12-24T10:06:00
+gpt-3.5-turbo,What are the benefits of renewable energy?,"Renewable energy sources like solar and wind help reduce greenhouse gas emissions, create jobs, and provide energy independence.",0.89,fluency,2024-12-24T10:07:00
+claude-3,Name three programming languages.,Python Java and JavaScript are three popular programming languages.,0.91,factuality,2024-12-24T10:08:00
+gpt-4,Name three programming languages.,Three widely-used programming languages are Python JavaScript and Java.,0.94,factuality,2024-12-24T10:09:00
+gpt-3.5-turbo,Describe machine learning in one sentence.,Machine learning is a subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed.,0.86,accuracy,2024-12-24T10:10:00
+claude-3,Describe machine learning in one sentence.,Machine learning allows computers to automatically improve their performance on tasks through experience with data.,0.84,accuracy,2024-12-24T10:11:00
