@@ -328,10 +328,9 @@ function App() {
                 border: "1px solid #dee2e6"
               }}>
                 <div style={{ fontWeight: "600", color: "#495057", marginBottom: "2px" }}>Conversation ID:</div>
-                <a 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
+                <button 
+                  type="button"
+                  onClick={() => {
                     setSelected({ type: 'conversation', runId: run.runId, conversationId: run.conversation_id, data: run });
                   }}
                   style={{

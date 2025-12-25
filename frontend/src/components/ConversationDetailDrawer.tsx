@@ -109,15 +109,17 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
               alignItems: 'center'
             }}>
               <span>Query</span>
-              <a 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
+              <button 
+                type="button"
+                onClick={() => {
                   setShowMetricJson('query');
                 }}
                 style={{
                   color: '#007bff',
                   textDecoration: 'none',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: 'normal'
                 }}
@@ -148,15 +150,17 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
               alignItems: 'center'
             }}>
               <span>Response</span>
-              <a 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
+              <button 
+                type="button"
+                onClick={() => {
                   setShowMetricJson('response');
                 }}
                 style={{
                   color: '#007bff',
                   textDecoration: 'none',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: 'normal'
                 }}
@@ -247,15 +251,17 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
               alignItems: 'center'
             }}>
               <span>Tool Calls</span>
-              <a 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
+              <button 
+                type="button"
+                onClick={() => {
                   setShowMetricJson('tools');
                 }}
                 style={{
                   color: '#007bff',
                   textDecoration: 'none',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
                   fontSize: '12px',
                   fontWeight: 'normal'
                 }}
