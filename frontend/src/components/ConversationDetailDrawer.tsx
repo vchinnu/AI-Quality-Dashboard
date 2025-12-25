@@ -133,7 +133,7 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
                 }}
               >
                 View in JSON
-              </a>
+              </button>
             </div>
             <div style={{ padding: '12px', maxHeight: '120px', overflow: 'auto', fontSize: '13px' }}>
               {data.prompt || rawData['inputs.query'] || 'N/A'}
@@ -174,7 +174,7 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
                 }}
               >
                 View in JSON
-              </a>
+              </button>
             </div>
             <div style={{ padding: '12px', maxHeight: '120px', overflow: 'auto', fontSize: '13px' }}>
               {(() => {
@@ -275,7 +275,7 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
                 }}
               >
                 View in JSON
-              </a>
+              </button>
             </div>
             <div style={{ padding: '12px', maxHeight: '120px', overflow: 'auto', fontSize: '13px' }}>
               {(() => {

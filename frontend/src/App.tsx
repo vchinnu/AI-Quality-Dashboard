@@ -349,7 +349,7 @@ function App() {
                   }}
                 >
                   {run.conversation_id || 'N/A'}
-                </a>
+                </button>
               </div>
               <MetricTile title="Tool Acc" data={run.toolCallAccuracy}
                 onClick={() => setSelected({ runId: run.runId, metric: "toolCallAccuracy" })} />
