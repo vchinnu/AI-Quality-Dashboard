@@ -5,6 +5,7 @@ Main application entry point for the AI Quality Dashboard backend.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
+import json
 import os
 
 app = FastAPI()
@@ -63,24 +64,72 @@ def load_dataset(file_path):
 def get_runs():
     return [load_dataset(DATA_PATH)]
 
+def extract_user_message(query_str):
+    """Extract user message from JSON query string"""
+    try:
+        if not query_str:
+            return ""
+        
+        import json
+        # Parse the JSON string
+        query_obj = json.loads(query_str)
+        
+        # Look for user role content
+        if isinstance(query_obj, list):
+            for item in query_obj:
+                if isinstance(item, dict) and item.get('role') == 'user':
+                    content = item.get('content', '')
+                    if isinstance(content, list):
+                        # Extract text from content array
+                        for content_item in content:
+                            if isinstance(content_item, dict) and content_item.get('type') == 'text':
+                                return content_item.get('text', '')
+                    elif isinstance(content, str):
+                        return content
+        
+        # If no user role found, return first 200 chars of original
+        return query_str[:200] + "..." if len(query_str) > 200 else query_str
+        
+    except (json.JSONDecodeError, Exception) as e:
+        # If JSON parsing fails, return first 200 chars
+        return query_str[:200] + "..." if len(query_str) > 200 else query_str
+
 @app.get("/runs/{run_id}/metrics/{metric}")
 def metric_details(run_id: str, metric: str):
-    # Sample metric details
-    return [
-        {
-            "promptId": "prompt_001",
-            "prompt": "What is machine learning?", 
-            "agentResponse": "Machine learning is a subset of AI...",
-            "passed": True,
-            "confidence": 0.95,
-            "reason": "Response is accurate and comprehensive"
-        },
-        {
-            "promptId": "prompt_002", 
-            "prompt": "Explain neural networks",
-            "agentResponse": "Neural networks are computational models...",
-            "passed": False,
-            "confidence": 0.72,
-            "reason": "Response lacks sufficient detail about backpropagation"
+    """Get detailed metric information for a specific run"""
+    
+    # Load actual CSV data
+    if not os.path.exists(DATA_PATH):
+        return []
+    
+    try:
+        df = pd.read_csv(DATA_PATH)
+        result = []
+        
+        # Metric mapping for column names
+        metric_map = {
+            "intentResolution": "intent_resolution",
+            "toolCallAccuracy": "tool_call_accuracy", 
+            "taskAdherence": "task_adherence"
         }
-    ]
+        
+        original_metric = metric_map.get(metric, metric)
+        
+        for i, row in df.iterrows():
+            result_key = f"{original_metric}.{original_metric}.result"
+            reason_key = f"{original_metric}.{original_metric}.reason"
+            
+            detail = {
+                "promptId": f"prompt_{i+1}",
+                "prompt": extract_user_message(row.get("inputs.query", "")),
+                "agentResponse": row.get("inputs.response", ""),
+                "passed": str(row.get(result_key, "")).lower() == "pass",
+                "confidence": 0.8,  # Default confidence since not in CSV
+                "reason": row.get(reason_key, "No reason provided")
+            }
+            result.append(detail)
+        
+        return result
+    except Exception as e:
+        print(f"Error loading metric details: {e}")
+        return []
