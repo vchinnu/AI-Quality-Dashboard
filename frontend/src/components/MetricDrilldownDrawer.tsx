@@ -7,6 +7,14 @@ const extractAssistantResponse = (responseRaw: string): string => {
   
   let assistantResponse = '';
   
+  // First try the specific pattern you mentioned: "role":"assistant","content":[{"type":"text","text":"
+  const specificPattern = /"role"\s*:\s*"assistant"\s*,\s*"content"\s*:\s*\[\s*{\s*"type"\s*:\s*"text"\s*,\s*"text"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/;
+  const specificMatch = responseRaw.match(specificPattern);
+  
+  if (specificMatch) {
+    return specificMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+  }
+  
   try {
     const parsedResponse = JSON.parse(responseRaw);
     
