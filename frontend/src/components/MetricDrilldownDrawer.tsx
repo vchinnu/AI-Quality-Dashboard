@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { getMetricDetails } from "../api/qualityApi";
 
 // Helper function to extract clean assistant response text
-// Removed extractAssistantResponse function - using inline logic insteadexport default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
+// Removed extractAssistantResponse function - using inline logic instead
+
+export default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
