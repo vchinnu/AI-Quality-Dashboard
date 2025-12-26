@@ -201,7 +201,7 @@ def get_metric_details(run_id: str, metric: str):
     detail = {
         "promptId": f"prompt_{run_data.get('runId', '').split('_')[-1]}",
         "prompt": extract_user_message(raw_data.get("inputs.query", "")),
-        "agentResponse": raw_data.get("inputs.response", "")[:500] + "..." if len(raw_data.get("inputs.response", "")) > 500 else raw_data.get("inputs.response", ""),
+        "agentResponse": raw_data.get("inputs.response", ""),
         "passed": raw_data.get(result_key, "").lower() == "pass",
         "confidence": metric_data.get("score", 0) / 100.0,
         "reason": raw_data.get(reason_key, "No reason provided")

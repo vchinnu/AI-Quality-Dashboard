@@ -1,6 +1,67 @@
 import { useEffect, useState } from "react";
 import { getMetricDetails } from "../api/qualityApi";
 
+// Helper function to extract clean assistant response text
+const extractAssistantResponse = (responseRaw: string): string => {
+  if (!responseRaw) return 'No response data available';
+  
+  let assistantResponse = '';
+  
+  try {
+    const parsedResponse = JSON.parse(responseRaw);
+    
+    // Helper function to extract text from content
+    const extractTextFromContent = (content: any): string => {
+      if (typeof content === 'string') return content;
+      if (Array.isArray(content)) {
+        for (const item of content) {
+          if (item && item.type === 'text' && item.text) return item.text;
+          if (typeof item === 'string') return item;
+        }
+      }
+      if (content && content.text) return content.text;
+      return '';
+    };
+    
+    // Handle array of messages
+    if (Array.isArray(parsedResponse)) {
+      for (const item of parsedResponse) {
+        if (item && item.role === 'assistant') {
+          assistantResponse = extractTextFromContent(item.content);
+          if (assistantResponse) break;
+        }
+      }
+    }
+    // Handle single message
+    else if (parsedResponse && parsedResponse.role === 'assistant') {
+      assistantResponse = extractTextFromContent(parsedResponse.content);
+    }
+    // Handle direct content
+    else if (parsedResponse && parsedResponse.content) {
+      assistantResponse = extractTextFromContent(parsedResponse.content);
+    }
+    // Handle direct text
+    else if (parsedResponse && parsedResponse.text) {
+      assistantResponse = parsedResponse.text;
+    }
+    
+  } catch (e) {
+    // Fallback: extract any text that comes after "assistant" role
+    const assistantMatch = responseRaw.match(/"role"\s*:\s*"assistant"[\s\S]*?"text"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+    if (assistantMatch) {
+      assistantResponse = assistantMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+    } else {
+      // Try to find any text field that might be the response
+      const textMatch = responseRaw.match(/"text"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+      if (textMatch && responseRaw.indexOf(textMatch[0]) > responseRaw.indexOf('"assistant"')) {
+        assistantResponse = textMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+      }
+    }
+  }
+  
+  return assistantResponse || 'No assistant response found';
+};
+
 export default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -123,7 +184,7 @@ export default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
                   maxHeight: "150px",
                   overflowY: "auto"
                 }}>
-                  {r.agentResponse}
+                  {extractAssistantResponse(r.agentResponse)}
                 </div>
               </div>
 
