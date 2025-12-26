@@ -352,19 +352,19 @@ function App() {
                 </button>
               </div>
               <MetricTile title="Tool Acc" data={run.toolCallAccuracy}
-                onClick={() => setSelected({ runId: run.runId, metric: "toolCallAccuracy" })} />
+                onClick={() => setSelected({ runId: run.conversation_id, metric: "toolCallAccuracy" })} />
               <MetricTile title="Task Adh" data={run.taskAdherence}
-                onClick={() => setSelected({ runId: run.runId, metric: "taskAdherence" })} />
+                onClick={() => setSelected({ runId: run.conversation_id, metric: "taskAdherence" })} />
               <MetricTile title="Intent" data={run.intentResolution}
-                onClick={() => setSelected({ runId: run.runId, metric: "intentResolution" })} />
+                onClick={() => setSelected({ runId: run.conversation_id, metric: "intentResolution" })} />
               <MetricTile title="Grounded" data={run.groundedness}
-                onClick={() => setSelected({ runId: run.runId, metric: "groundedness" })} />
+                onClick={() => setSelected({ runId: run.conversation_id, metric: "groundedness" })} />
               <MetricTile title="Relevance" data={run.relevance}
-                onClick={() => setSelected({ runId: run.runId, metric: "relevance" })} />
+                onClick={() => setSelected({ runId: run.conversation_id, metric: "relevance" })} />
               <MetricTile title="Coherence" data={run.coherence}
-                onClick={() => setSelected({ runId: run.runId, metric: "coherence" })} />
+                onClick={() => setSelected({ runId: run.conversation_id, metric: "coherence" })} />
               <MetricTile title="Fluency" data={run.fluency}
-                onClick={() => setSelected({ runId: run.runId, metric: "fluency" })} />
+                onClick={() => setSelected({ runId: run.conversation_id, metric: "fluency" })} />
             </div>
           ))}
         </div>
