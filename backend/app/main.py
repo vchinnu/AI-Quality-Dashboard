@@ -2,11 +2,14 @@
 Main application entry point for the AI Quality Dashboard backend.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import json
 import os
+import tempfile
+import shutil
+from typing import Optional
 
 app = FastAPI()
 
@@ -17,8 +20,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Use relative path from the backend directory
-DATA_PATH = os.path.join("app", "data", "5Prompts-DSB_WorkloadRCAAgent_quality_quality_en_20251224-055849.csv")
+# Default data path - can be overridden by file upload
+DEFAULT_DATA_PATH = os.path.join("app", "data", "5Prompts-DSB_WorkloadRCAAgent_quality_quality_en_20251224-055849.csv")
+
+# Store current active dataset path
+current_dataset_path = DEFAULT_DATA_PATH
 
 def load_dataset(file_path):
     """Load and process dataset for the dashboard."""
@@ -35,7 +41,12 @@ def load_dataset(file_path):
         }
     
     try:
-        df = pd.read_csv(file_path)
+        # Load the file based on its extension
+        if file_path.endswith('.csv'):
+            df = pd.read_csv(file_path)
+        else:  # Excel file (.xlsx, .xls)
+            df = pd.read_excel(file_path)
+        
         # Process the data and return summary
         return {
             "runId": "run_001", 
@@ -60,9 +71,85 @@ def load_dataset(file_path):
             "fluency": {"score": 0, "passed": 0, "total": 0}
         }
 
+@app.post("/upload-dataset")
+async def upload_dataset(file: UploadFile = File(...)):
+    """Upload a new dataset file (CSV or Excel)"""
+    global current_dataset_path
+    
+    # Validate file type
+    if not file.filename.endswith(('.csv', '.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="File must be a CSV or Excel file")
+    
+    try:
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            # Save uploaded file to temporary location
+            shutil.copyfileobj(file.file, temp_file)
+            temp_file_path = temp_file.name
+        
+        # Test if the file can be loaded
+        try:
+            if file.filename.endswith('.csv'):
+                df = pd.read_csv(temp_file_path)
+            else:  # Excel file
+                df = pd.read_excel(temp_file_path)
+            
+            # Basic validation - check if it has expected columns (adjust based on your needs)
+            # You can add more specific validation here based on your data structure
+            
+            # Update current dataset path
+            current_dataset_path = temp_file_path
+            
+            return {
+                "message": "Dataset uploaded successfully",
+                "filename": file.filename,
+                "rows": len(df),
+                "columns": list(df.columns)
+            }
+            
+        except Exception as e:
+            # Clean up temp file if validation fails
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+            raise HTTPException(status_code=400, detail=f"Invalid file format: {str(e)}")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@app.get("/current-dataset-info")
+def get_current_dataset_info():
+    """Get information about the currently loaded dataset"""
+    global current_dataset_path
+    
+    if not os.path.exists(current_dataset_path):
+        return {"message": "No dataset currently loaded", "path": None}
+    
+    try:
+        if current_dataset_path.endswith('.csv'):
+            df = pd.read_csv(current_dataset_path)
+        else:
+            df = pd.read_excel(current_dataset_path)
+            
+        return {
+            "filename": os.path.basename(current_dataset_path),
+            "path": current_dataset_path,
+            "rows": len(df),
+            "columns": list(df.columns),
+            "is_default": current_dataset_path == DEFAULT_DATA_PATH
+        }
+    except Exception as e:
+        return {"error": f"Could not read dataset: {str(e)}"}
+
+@app.post("/reset-to-default-dataset")
+def reset_to_default_dataset():
+    """Reset to using the default dataset"""
+    global current_dataset_path
+    current_dataset_path = DEFAULT_DATA_PATH
+    return {"message": "Reset to default dataset", "path": DEFAULT_DATA_PATH}
+
 @app.get("/runs")
 def get_runs():
-    return [load_dataset(DATA_PATH)]
+    return [load_dataset(current_dataset_path)]
 
 def extract_user_message(query_str):
     """Extract user message from JSON query string"""
@@ -97,13 +184,19 @@ def extract_user_message(query_str):
 @app.get("/runs/{run_id}/metrics/{metric}")
 def metric_details(run_id: str, metric: str):
     """Get detailed metric information for a specific run"""
+    global current_dataset_path
     
     # Load actual CSV data
-    if not os.path.exists(DATA_PATH):
+    if not os.path.exists(current_dataset_path):
         return []
     
     try:
-        df = pd.read_csv(DATA_PATH)
+        # Load the file based on its extension
+        if current_dataset_path.endswith('.csv'):
+            df = pd.read_csv(current_dataset_path)
+        else:  # Excel file
+            df = pd.read_excel(current_dataset_path)
+        
         result = []
         
         # Metric mapping for column names

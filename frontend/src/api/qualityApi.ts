@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = process.env.REACT_APP_API_URL || "http://localhost:8001";
+const API = process.env.REACT_APP_API_URL || "http://localhost:8002";
 
 export const getRunSummaries = async () => {
   const res = await axios.get(`${API}/runs`);

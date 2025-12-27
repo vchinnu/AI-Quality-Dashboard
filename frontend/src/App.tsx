@@ -3,6 +3,7 @@ import { getRunSummaries } from "./api/qualityApi";
 import MetricTile from "./components/MetricTile";
 import MetricDrilldownDrawer from "./components/MetricDrilldownDrawer";
 import ConversationDetailDrawer from "./components/ConversationDetailDrawer";
+import DatasetUploader from "./components/DatasetUploader";
 
 function App() {
   const [runs, setRuns] = useState<any[]>([]);
@@ -48,24 +49,29 @@ function App() {
     return aggregated;
   };
 
+  const fetchData = async () => {
+    try {
+      const runsData = await getRunSummaries();
+      console.log("Raw API data:", runsData);
+      setRuns(runsData);
+      
+      // Create aggregated summary
+      const summary = aggregateRuns(runsData);
+      setAggregatedData(summary);
+      console.log("Aggregated data:", summary);
+    } catch (error) {
+      console.error("Error fetching runs:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const runsData = await getRunSummaries();
-        console.log("Raw API data:", runsData);
-        setRuns(runsData);
-        
-        // Create aggregated summary
-        const summary = aggregateRuns(runsData);
-        setAggregatedData(summary);
-        console.log("Aggregated data:", summary);
-      } catch (error) {
-        console.error("Error fetching runs:", error);
-      }
-    };
-    
     fetchData();
   }, []);
+
+  const handleDatasetUpdated = () => {
+    // Refresh data when a new dataset is uploaded
+    fetchData();
+  };
 
   return (
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto", fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -74,8 +80,11 @@ function App() {
         <p style={{ margin: "0", color: "#666", fontSize: "14px" }}>Evaluation metrics across {runs.length} test prompt runs</p>
       </div>
       
+      {/* Dataset Upload Section */}
+      <DatasetUploader onDatasetUpdated={handleDatasetUpdated} />
+      
       {/* Aggregated Summary View */}
-      {aggregatedData && (
+      {aggregatedData && aggregatedData.toolCallAccuracy && (
         <div style={{ marginBottom: "40px" }}>
           <div style={{ 
             display: "flex", 
@@ -88,7 +97,7 @@ function App() {
             border: "1px solid #e9ecef"
           }}>
             <div onClick={() => setSelected({ runId: "all", metric: "tool_call_accuracy", data: runs })} style={{
-              background: getColor(Math.round((aggregatedData.toolCallAccuracy.passed / aggregatedData.toolCallAccuracy.total) * 100)),
+              background: getColor(Math.round(((aggregatedData.toolCallAccuracy?.passed || 0) / (aggregatedData.toolCallAccuracy?.total || 1)) * 100)),
               padding: "12px",
               borderRadius: "8px",
               cursor: "pointer",
@@ -110,14 +119,14 @@ function App() {
             }}>
               <div style={{ fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>Tool Acc</div>
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "2px" }}>
-                {Math.round((aggregatedData.toolCallAccuracy.passed / aggregatedData.toolCallAccuracy.total) * 100)}%
+                {Math.round(((aggregatedData.toolCallAccuracy?.passed || 0) / (aggregatedData.toolCallAccuracy?.total || 1)) * 100)}%
               </div>
               <div style={{ fontSize: "10px", opacity: 0.9 }}>
-                {aggregatedData.toolCallAccuracy.passed}/{aggregatedData.toolCallAccuracy.total}
+                {aggregatedData.toolCallAccuracy?.passed || 0}/{aggregatedData.toolCallAccuracy?.total || 0}
               </div>
             </div>
             <div onClick={() => setSelected({ runId: "all", metric: "task_adherence", data: runs })} style={{
-              background: getColor(Math.round((aggregatedData.taskAdherence.passed / aggregatedData.taskAdherence.total) * 100)),
+              background: getColor(Math.round(((aggregatedData.taskAdherence?.passed || 0) / (aggregatedData.taskAdherence?.total || 1)) * 100)),
               padding: "12px",
               borderRadius: "8px",
               cursor: "pointer",
@@ -139,14 +148,14 @@ function App() {
             }}>
               <div style={{ fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>Task Adh</div>
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "2px" }}>
-                {Math.round((aggregatedData.taskAdherence.passed / aggregatedData.taskAdherence.total) * 100)}%
+                {Math.round(((aggregatedData.taskAdherence?.passed || 0) / (aggregatedData.taskAdherence?.total || 1)) * 100)}%
               </div>
               <div style={{ fontSize: "10px", opacity: 0.9 }}>
-                {aggregatedData.taskAdherence.passed}/{aggregatedData.taskAdherence.total}
+                {aggregatedData.taskAdherence?.passed || 0}/{aggregatedData.taskAdherence?.total || 0}
               </div>
             </div>
             <div onClick={() => setSelected({ runId: "all", metric: "intent_resolution",data: runs })} style={{
-              background: getColor(Math.round((aggregatedData.intentResolution.passed / aggregatedData.intentResolution.total) * 100)),
+              background: getColor(Math.round(((aggregatedData.intentResolution?.passed || 0) / (aggregatedData.intentResolution?.total || 1)) * 100)),
               padding: "12px",
               borderRadius: "8px",
               cursor: "pointer",
@@ -168,14 +177,14 @@ function App() {
             }}>
               <div style={{ fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>Intent</div>
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "2px" }}>
-                {Math.round((aggregatedData.intentResolution.passed / aggregatedData.intentResolution.total) * 100)}%
+                {Math.round(((aggregatedData.intentResolution?.passed || 0) / (aggregatedData.intentResolution?.total || 1)) * 100)}%
               </div>
               <div style={{ fontSize: "10px", opacity: 0.9 }}>
-                {aggregatedData.intentResolution.passed}/{aggregatedData.intentResolution.total}
+                {aggregatedData.intentResolution?.passed || 0}/{aggregatedData.intentResolution?.total || 0}
               </div>
             </div>
             <div onClick={() => setSelected({ runId: "all", metric: "groundedness",data: runs })} style={{
-              background: getColor(Math.round((aggregatedData.groundedness.passed / aggregatedData.groundedness.total) * 100)),
+              background: getColor(Math.round(((aggregatedData.groundedness?.passed || 0) / (aggregatedData.groundedness?.total || 1)) * 100)),
               padding: "12px",
               borderRadius: "8px",
               cursor: "pointer",
@@ -197,14 +206,14 @@ function App() {
             }}>
               <div style={{ fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>Grounded</div>
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "2px" }}>
-                {Math.round((aggregatedData.groundedness.passed / aggregatedData.groundedness.total) * 100)}%
+                {Math.round(((aggregatedData.groundedness?.passed || 0) / (aggregatedData.groundedness?.total || 1)) * 100)}%
               </div>
               <div style={{ fontSize: "10px", opacity: 0.9 }}>
-                {aggregatedData.groundedness.passed}/{aggregatedData.groundedness.total}
+                {aggregatedData.groundedness?.passed || 0}/{aggregatedData.groundedness?.total || 0}
               </div>
             </div>
             <div onClick={() => setSelected({ runId: "all", metric: "relevance",data: runs })} style={{
-              background: getColor(Math.round((aggregatedData.relevance.passed / aggregatedData.relevance.total) * 100)),
+              background: getColor(Math.round(((aggregatedData.relevance?.passed || 0) / (aggregatedData.relevance?.total || 1)) * 100)),
               padding: "12px",
               borderRadius: "8px",
               cursor: "pointer",
@@ -226,14 +235,14 @@ function App() {
             }}>
               <div style={{ fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>Relevance</div>
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "2px" }}>
-                {Math.round((aggregatedData.relevance.passed / aggregatedData.relevance.total) * 100)}%
+                {Math.round(((aggregatedData.relevance?.passed || 0) / (aggregatedData.relevance?.total || 1)) * 100)}%
               </div>
               <div style={{ fontSize: "10px", opacity: 0.9 }}>
-                {aggregatedData.relevance.passed}/{aggregatedData.relevance.total}
+                {aggregatedData.relevance?.passed || 0}/{aggregatedData.relevance?.total || 0}
               </div>
             </div>
             <div onClick={() => setSelected({ runId: "all", metric: "coherence", data: runs })} style={{
-              background: getColor(Math.round((aggregatedData.coherence.passed / aggregatedData.coherence.total) * 100)),
+              background: getColor(Math.round(((aggregatedData.coherence?.passed || 0) / (aggregatedData.coherence?.total || 1)) * 100)),
               padding: "12px",
               borderRadius: "8px",
               cursor: "pointer",
@@ -255,14 +264,14 @@ function App() {
             }}>
               <div style={{ fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>Coherence</div>
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "2px" }}>
-                {Math.round((aggregatedData.coherence.passed / aggregatedData.coherence.total) * 100)}%
+                {Math.round(((aggregatedData.coherence?.passed || 0) / (aggregatedData.coherence?.total || 1)) * 100)}%
               </div>
               <div style={{ fontSize: "10px", opacity: 0.9 }}>
-                {aggregatedData.coherence.passed}/{aggregatedData.coherence.total}
+                {aggregatedData.coherence?.passed || 0}/{aggregatedData.coherence?.total || 0}
               </div>
             </div>
             <div onClick={() => setSelected({ runId: "all", metric: "fluency", data: runs })} style={{
-              background: getColor(Math.round((aggregatedData.fluency.passed / aggregatedData.fluency.total) * 100)),
+              background: getColor(Math.round(((aggregatedData.fluency?.passed || 0) / (aggregatedData.fluency?.total || 1)) * 100)),
               padding: "12px",
               borderRadius: "8px",
               cursor: "pointer",
@@ -284,10 +293,10 @@ function App() {
             }}>
               <div style={{ fontWeight: "600", marginBottom: "4px", fontSize: "12px" }}>Fluency</div>
               <div style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "2px" }}>
-                {Math.round((aggregatedData.fluency.passed / aggregatedData.fluency.total) * 100)}%
+                {Math.round(((aggregatedData.fluency?.passed || 0) / (aggregatedData.fluency?.total || 1)) * 100)}%
               </div>
               <div style={{ fontSize: "10px", opacity: 0.9 }}>
-                {aggregatedData.fluency.passed}/{aggregatedData.fluency.total}
+                {aggregatedData.fluency?.passed || 0}/{aggregatedData.fluency?.total || 0}
               </div>
             </div>
           </div>
@@ -351,19 +360,19 @@ function App() {
                   {run.conversation_id || 'N/A'}
                 </button>
               </div>
-              <MetricTile title="Tool Acc" data={run.toolCallAccuracy}
+              <MetricTile title="Tool Acc" data={run.toolCallAccuracy || {score: 0, passed: 0, total: 0}}
                 onClick={() => setSelected({ runId: run.runId, metric: "tool_call_accuracy", data: [run] })} />
-              <MetricTile title="Task Adh" data={run.taskAdherence}
+              <MetricTile title="Task Adh" data={run.taskAdherence || {score: 0, passed: 0, total: 0}}
                 onClick={() => setSelected({ runId: run.runId, metric: "task_adherence", data: [run] })} />
-              <MetricTile title="Intent" data={run.intentResolution}
+              <MetricTile title="Intent" data={run.intentResolution || {score: 0, passed: 0, total: 0}}
                 onClick={() => setSelected({ runId: run.runId, metric: "intent_resolution", data: [run] })} />
-              <MetricTile title="Grounded" data={run.groundedness}
+              <MetricTile title="Grounded" data={run.groundedness || {score: 0, passed: 0, total: 0}}
                 onClick={() => setSelected({ runId: run.runId, metric: "groundedness", data: [run] })} />
-              <MetricTile title="Relevance" data={run.relevance}
+              <MetricTile title="Relevance" data={run.relevance || {score: 0, passed: 0, total: 0}}
                 onClick={() => setSelected({ runId: run.runId, metric: "relevance", data: [run] })} />
-              <MetricTile title="Coherence" data={run.coherence}
+              <MetricTile title="Coherence" data={run.coherence || {score: 0, passed: 0, total: 0}}
                 onClick={() => setSelected({ runId: run.runId, metric: "coherence", data: [run] })} />
-              <MetricTile title="Fluency" data={run.fluency}
+              <MetricTile title="Fluency" data={run.fluency || {score: 0, passed: 0, total: 0}}
                 onClick={() => setSelected({ runId: run.runId, metric: "fluency", data: [run] })} />
             </div>
           ))}

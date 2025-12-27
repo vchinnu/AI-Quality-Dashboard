@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { getMetricDetails } from "../api/qualityApi";
 
-// Helper function to extract clean assistant response text
-// Removed extractAssistantResponse function - using inline logic instead
-
 export default function MetricDrilldownDrawer({ runId, metric, data, onClose }: any) {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -11,29 +8,78 @@ export default function MetricDrilldownDrawer({ runId, metric, data, onClose }: 
   useEffect(() => {
     console.log("Fetching metric details for", runId, metric);
     setLoading(true);
-    console.log("metrc", metric);
-    const details = data.map((item : any,index:number) => {
-    const rawData = item.raw_data;
-    return {
+    console.log("metric", metric);
+    
+    const details = data.map((item : any, index: number) => {
+      // Extract user message and agent response from the actual data structure
+      const userMessage = item.user_message || 'No prompt available';
+      let agentResponse = '';
+      
+      // Parse the agent_response JSON string to extract the actual response text
+      try {
+        if (item.agent_response) {
+          const parsedResponse = JSON.parse(item.agent_response);
+          
+          // Look for the final assistant response (usually the last message with role "assistant" and text content)
+          if (Array.isArray(parsedResponse)) {
+            for (let i = parsedResponse.length - 1; i >= 0; i--) {
+              const message = parsedResponse[i];
+              if (message.role === 'assistant' && message.content) {
+                if (Array.isArray(message.content)) {
+                  // Find text content in the content array
+                  for (const content of message.content) {
+                    if (content.type === 'text' && content.text) {
+                      agentResponse = content.text;
+                      break;
+                    }
+                  }
+                } else if (typeof message.content === 'string') {
+                  agentResponse = message.content;
+                }
+                if (agentResponse) break;
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing agent response:', e);
+        agentResponse = 'Error parsing response data';
+      }
+      
+      if (!agentResponse) {
+        agentResponse = 'No response data available';
+      }
+      
+      // Map metric names to get the correct data
+      const metricMap: { [key: string]: string } = {
+        'tool_call_accuracy': 'toolCallAccuracy',
+        'task_adherence': 'taskAdherence', 
+        'intent_resolution': 'intentResolution',
+        'groundedness': 'groundedness',
+        'relevance': 'relevance',
+        'coherence': 'coherence',
+        'fluency': 'fluency'
+      };
+      
+      const actualMetric = metricMap[metric] || metric;
+      const metricData = item[actualMetric] || {};
+      
+      return {
         promptId: index + 1,
-        prompt: item.prompt,
-        conversationId: rawData["inputs.conversation_id"],
-        agentResponse: rawData["inputs.response"],
-        passed: String(rawData[`${metric}.${metric}.result`] || "").toLowerCase() == "pass",
+        prompt: userMessage,
+        conversationId: item.conversation_id || 'N/A',
+        agentResponse: agentResponse,
+        passed: metricData.result === "Pass",
         confidence: "0.8",
-        //reason: rawData["intent_resolution.intent_resolution.reason"]
-        reason: rawData[`${metric}.${metric}.reason`]
-    }});
+        reason: metricData.reason || 'No reason available'
+      };
+    });
+    
     console.log("Metric details from props:", details);
     setRows(details);
     setLoading(false);
-    console.log("Metric details set from props:", data);  
-    // getMetricDetails(runId, metric).then(data =>{
-    //  setRows(data);
-    // console.log("Metric details fetched:", data);
-    //setLoading(false);
-    //});
-  }, [runId, metric]);
+    console.log("Metric details set from props:", data);
+  }, [runId, metric, data]);
 
   const getStatusColor = (passed: boolean) => {
     return passed ? "#2E7D32" : "#D32F2F";
@@ -145,70 +191,7 @@ export default function MetricDrilldownDrawer({ runId, metric, data, onClose }: 
                   maxHeight: "150px",
                   overflowY: "auto"
                 }}>
-                  {(() => {
-                    // Extract assistant response text using same logic as ConversationDetailDrawer
-                    const responseRaw = r.agentResponse || '';
-                    if (!responseRaw) return 'No response data available';
-                    
-                    let assistantResponse = '';
-                    console.log(responseRaw);
-                    try {
-                      const parsedResponse = JSON.parse(responseRaw);
-                      
-                      // Helper function to extract text from content
-                      const extractTextFromContent = (content: any): string => {
-                        if (typeof content === 'string') return content;
-                        if (Array.isArray(content)) {
-                          console.log("Extracting text from content array:", content);
-                          for (const item of content) {
-                            if (item && item.type === 'text' && item.text) return item.text;
-                            if (typeof item === 'string') return item;
-                          }
-                        }
-                        if (content && content.text) return content.text;
-                        return '';
-                      };
-                      
-                      // Handle array of messages
-                      if (Array.isArray(parsedResponse)) {
-                        console.log("Extracting text from parsedResponse array:");
-                        for (const item of parsedResponse) {
-                          if (item && item.role === 'assistant') {
-                            assistantResponse = extractTextFromContent(item.content);
-                            if (assistantResponse) break;
-                          }
-                        }
-                        console.log('Extracted from array:', assistantResponse);
-                      }
-                      // Handle single message
-                      else if (parsedResponse && parsedResponse.role === 'assistant') {
-                        assistantResponse = extractTextFromContent(parsedResponse.content);
-                      }
-                      // Handle direct content
-                      else if (parsedResponse && parsedResponse.content) {
-                        assistantResponse = extractTextFromContent(parsedResponse.content);
-                      }
-                      // Handle direct text
-                      else if (parsedResponse && parsedResponse.text) {
-                        assistantResponse = parsedResponse.text;
-                      }
-                      
-                    } catch (e) {
-                      // Fallback: extract any text that comes after "assistant" role
-                      const assistantMatch = responseRaw.match(/"role"\s*:\s*"assistant"[\s\S]*?"text"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/); 
-                      if (assistantMatch) {
-                        assistantResponse = assistantMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-                      } else {
-                        // Try to find any text field that might be the response
-                        const textMatch = responseRaw.match(/"text"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/); 
-                        if (textMatch && responseRaw.indexOf(textMatch[0]) > responseRaw.indexOf('"assistant"')) {
-                          assistantResponse = textMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-                        }
-                      }
-                    }
-                    
-                    return assistantResponse || 'No assistant response found';
-                  })()}
+                  {r.agentResponse}
                 </div>
               </div>
 

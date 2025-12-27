@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-Standalone FastAPI server for AI Quality Dashboard
+Azure-optimized FastAPI server for AI Quality Dashboard
 """
 
 import csv
 import json
 import os
-from fastapi import FastAPI
+import tempfile
+import shutil
+from datetime import datetime
+from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import pandas as pd
+from typing import Optional
 
 app = FastAPI(title="AI Quality Dashboard API")
 
@@ -49,32 +54,76 @@ def extract_user_message(query_str):
         # If JSON parsing fails, return first 200 chars
         return query_str[:200] + "..." if len(query_str) > 200 else query_str
 
+# Default data path - adjusted for Azure
+DEFAULT_CSV_PATH = os.path.join("app", "data", "5Prompts-DSB_WorkloadRCAAgent_quality_quality_en_20251224-055849.csv")
+
+# Store current active dataset path and original filename
+current_dataset_path = DEFAULT_CSV_PATH
+current_dataset_filename = os.path.basename(DEFAULT_CSV_PATH)
+
 def load_csv_data():
     """Load and parse the CSV data"""
-    # Use absolute path to ensure we can find the CSV file
-    csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app", "data", "5Prompts-DSB_WorkloadRCAAgent_quality_quality_en_20251224-055849.csv")
+    global current_dataset_path
     data = []
     
-    if not os.path.exists(csv_path):
-        print(f"CSV file not found at {csv_path}")
+    if not os.path.exists(current_dataset_path):
+        print(f"CSV file not found at {current_dataset_path}")
         return []
     
     try:
-        with open(csv_path, 'r', encoding='utf-8') as file:
-            csv_reader = csv.DictReader(file)
-            for row in csv_reader:
-                # Extract the relevant data from CSV
+        # Load the file based on its extension  
+        if current_dataset_path.endswith('.csv'):
+            with open(current_dataset_path, 'r', encoding='utf-8') as file:
+                csv_reader = csv.DictReader(file)
+                for row in csv_reader:
+                    # Extract the relevant data from CSV
+                    query_raw = row.get("inputs.query", "")
+                    user_message = extract_user_message(query_raw)
+                    
+                    run_data = {
+                        "runId": f"run_{row.get('id', 'unknown')}",
+                        "conversation_id": row.get("inputs.conversation_id", ""),
+                        "user_message": user_message,
+                        "agent_response": row.get("inputs.response", "")
+                    }
+                    
+                    # Parse evaluation metrics
+                    metrics = ["intent_resolution", "coherence", "relevance", "groundedness", "tool_call_accuracy", "task_adherence", "fluency"]
+                    
+                    for metric in metrics:
+                        result_key = f"{metric}.{metric}.result"
+                        score_key = f"{metric}.{metric}.score" 
+                        reason_key = f"{metric}.{metric}.reason"
+                        
+                        result = row.get(result_key, "")
+                        score_str = row.get(score_key, "0")
+                        reason = row.get(reason_key, "")
+                        
+                        # Parse score
+                        try:
+                            score = float(score_str) if score_str else 0.0
+                        except ValueError:
+                            score = 0.0
+                        
+                        run_data[f"{metric}_result"] = result
+                        run_data[f"{metric}_score"] = score  
+                        run_data[f"{metric}_reason"] = reason
+                    
+                    data.append(run_data)
+        
+        elif current_dataset_path.endswith(('.xlsx', '.xls')):
+            # Read Excel file
+            df = pd.read_excel(current_dataset_path)
+            for _, row in df.iterrows():
+                # Process Excel data similar to CSV
                 query_raw = row.get("inputs.query", "")
                 user_message = extract_user_message(query_raw)
                 
                 run_data = {
                     "runId": f"run_{row.get('id', 'unknown')}",
-                    "prompt": user_message,
                     "conversation_id": row.get("inputs.conversation_id", ""),
-                    "response": row.get("inputs.response", ""),
-                    "tool_definitions": row.get("inputs.tool_definitions", ""),
-                    "tools_used": row.get("inputs.tools_used", ""),
-                    "raw_data": row  # Store raw row for detailed views
+                    "user_message": user_message,
+                    "agent_response": row.get("inputs.response", "")
                 }
                 
                 # Parse evaluation metrics
@@ -86,132 +135,145 @@ def load_csv_data():
                     reason_key = f"{metric}.{metric}.reason"
                     
                     result = row.get(result_key, "")
-                    score_str = row.get(score_key, "0")
+                    score_str = str(row.get(score_key, "0"))
                     reason = row.get(reason_key, "")
                     
-                    # Convert result to pass/fail
-                    passed = 1 if result.lower() == "pass" else 0
-                    total = 1
+                    # Parse score
+                    try:
+                        score = float(score_str) if score_str else 0.0
+                    except ValueError:
+                        score = 0.0
                     
-                    # Use pass/fail as the primary score (0% or 100%)
-                    # This gives a clearer view of success rate per evaluation
-                    score = 100 if passed == 1 else 0
-                    
-                    # Convert metric name for frontend compatibility
-                    metric_name = metric
-                    if metric == "intent_resolution":
-                        metric_name = "intentResolution"
-                    elif metric == "tool_call_accuracy":
-                        metric_name = "toolCallAccuracy"
-                    elif metric == "task_adherence":
-                        metric_name = "taskAdherence"
-                    
-                    run_data[metric_name] = {
-                        "score": score,
-                        "passed": passed,
-                        "total": total,
-                        "result": result,
-                        "reason": reason
-                    }
+                    run_data[f"{metric}_result"] = result
+                    run_data[f"{metric}_score"] = score  
+                    run_data[f"{metric}_reason"] = reason
                 
                 data.append(run_data)
-        
-        print(f"Loaded {len(data)} records from CSV")
-        return data
-    
+                
     except Exception as e:
-        print(f"Error loading CSV: {e}")
+        print(f"Error loading CSV data: {str(e)}")
         return []
-
-# Load data from CSV
-EVALUATION_DATA = load_csv_data()
+    
+    return data
 
 @app.get("/")
 def read_root():
-    return {"message": "AI Quality Dashboard API"}
+    """Root endpoint"""
+    return {"message": "AI Quality Dashboard API", "status": "running"}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint"""
+    return {"status": "ok", "timestamp": datetime.now().isoformat()}
 
 @app.get("/runs")
 def get_runs():
-    """Get all run summaries"""
-    if not EVALUATION_DATA:
-        return []
-    return EVALUATION_DATA
+    """Get all evaluation runs"""
+    try:
+        data = load_csv_data()
+        return {"runs": data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading data: {str(e)}")
 
-@app.get("/runs/{run_id}/metrics/{metric}")
-def get_metric_details(run_id: str, metric: str):
-    """Get detailed metric information for a specific run"""
-    
-    # Handle aggregated view for all runs
-    if run_id == "all":
-        result = []
-        for i, data in enumerate(EVALUATION_DATA):
-            metric_map = {
-                "intentResolution": "intent_resolution",
-                "toolCallAccuracy": "tool_call_accuracy", 
-                "taskAdherence": "task_adherence"
-            }
+@app.get("/metrics")
+def get_metrics():
+    """Get aggregated metrics"""
+    try:
+        data = load_csv_data()
+        
+        if not data:
+            return {"metrics": []}
+        
+        # Calculate metrics
+        metrics_data = {}
+        metrics = ["intent_resolution", "coherence", "relevance", "groundedness", "tool_call_accuracy", "task_adherence", "fluency"]
+        
+        for metric in metrics:
+            scores = [run.get(f"{metric}_score", 0) for run in data]
+            valid_scores = [s for s in scores if isinstance(s, (int, float)) and s > 0]
             
-            original_metric = metric_map.get(metric, metric)
-            raw_data = data.get("raw_data", {})
-            metric_data = data.get(metric, {})
-            result_key = f"{original_metric}.{original_metric}.result"
-            reason_key = f"{original_metric}.{original_metric}.reason"
-            
-            detail = {
-                "promptId": f"prompt_{i+1}",
-                "prompt": extract_user_message(raw_data.get("inputs.query", "")),
-                "agentResponse": raw_data.get("inputs.response", ""),
-                "passed": raw_data.get(result_key, "").lower() == "pass",
-                "confidence": metric_data.get("score", 0) / 100.0,
-                "reason": raw_data.get(reason_key, "No reason provided")
-            }
-            result.append(detail)
-        return result
+            if valid_scores:
+                avg_score = sum(valid_scores) / len(valid_scores)
+                metrics_data[metric] = {
+                    "name": metric.replace("_", " ").title(),
+                    "value": round(avg_score, 2),
+                    "total_runs": len(data),
+                    "valid_scores": len(valid_scores)
+                }
+            else:
+                metrics_data[metric] = {
+                    "name": metric.replace("_", " ").title(),
+                    "value": 0,
+                    "total_runs": len(data),
+                    "valid_scores": 0
+                }
+        
+        return {"metrics": list(metrics_data.values())}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error calculating metrics: {str(e)}")
+
+@app.get("/runs/{run_id}")
+def get_run(run_id: str):
+    """Get specific run details"""
+    try:
+        data = load_csv_data()
+        
+        run = next((r for r in data if r["runId"] == run_id), None)
+        if not run:
+            raise HTTPException(status_code=404, detail="Run not found")
+        
+        return {"run": run}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting run: {str(e)}")
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    """Upload CSV/Excel file"""
+    global current_dataset_path, current_dataset_filename
     
-    # Handle individual run details
-    run_data = None
-    for data in EVALUATION_DATA:
-        if data["runId"] == run_id:
-            run_data = data
-            break
-    
-    if not run_data:
-        return []
-    
-    # Convert camelCase metric names back to snake_case for data lookup
-    metric_map = {
-        "intentResolution": "intent_resolution",
-        "toolCallAccuracy": "tool_call_accuracy", 
-        "taskAdherence": "task_adherence"
+    try:
+        # Validate file type
+        if not file.filename.endswith(('.csv', '.xlsx', '.xls')):
+            raise HTTPException(status_code=400, detail="Only CSV and Excel files are supported")
+        
+        # Create temporary file
+        suffix = '.csv' if file.filename.endswith('.csv') else '.xlsx'
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        
+        # Save uploaded file
+        content = await file.read()
+        temp_file.write(content)
+        temp_file.close()
+        
+        # Update current dataset path
+        current_dataset_path = temp_file.name
+        current_dataset_filename = file.filename
+        
+        # Test load the data
+        test_data = load_csv_data()
+        
+        return {
+            "message": f"File uploaded successfully: {file.filename}",
+            "filename": file.filename,
+            "rows_loaded": len(test_data)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading file: {str(e)}")
+
+@app.get("/current-dataset")
+def get_current_dataset():
+    """Get info about currently loaded dataset"""
+    return {
+        "filename": current_dataset_filename,
+        "path": current_dataset_path,
+        "exists": os.path.exists(current_dataset_path)
     }
-    
-    original_metric = metric_map.get(metric, metric)
-    
-    # Get the raw CSV data for this run
-    raw_data = run_data.get("raw_data", {})
-    
-    # Create detailed response based on the actual data
-    result = []
-    
-    # Since we only have one record per run, create a single detail entry
-    metric_data = run_data.get(metric, {})
-    result_key = f"{original_metric}.{original_metric}.result"
-    reason_key = f"{original_metric}.{original_metric}.reason"
-    
-    detail = {
-        "promptId": f"prompt_{run_data.get('runId', '').split('_')[-1]}",
-        "prompt": extract_user_message(raw_data.get("inputs.query", "")),
-        "agentResponse": raw_data.get("inputs.response", ""),
-        "passed": raw_data.get(result_key, "").lower() == "pass",
-        "confidence": metric_data.get("score", 0) / 100.0,
-        "reason": raw_data.get(reason_key, "No reason provided")
-    }
-    
-    result.append(detail)
-    return result
 
 if __name__ == "__main__":
     import uvicorn
-    import os
-    port = int(os.environ.get("PORT", 8001))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
