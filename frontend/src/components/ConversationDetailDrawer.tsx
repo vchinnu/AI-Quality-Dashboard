@@ -14,7 +14,7 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
     return JSON.stringify(obj, null, 2);
   };
 
-  const getStatusBadge = (status: string) => {
+  // const getStatusBadge = (status: string) => {
     const isPass = status?.toLowerCase() === 'pass';
     return (
       <span style={{

@@ -66,7 +66,7 @@ function App() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleDatasetUpdated = () => {
     // Refresh data when a new dataset is uploaded

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMetricDetails } from "../api/qualityApi";
+// import { getMetricDetails } from "../api/qualityApi";
 
 export default function MetricDrilldownDrawer({ runId, metric, data, onClose }: any) {
   const [rows, setRows] = useState<any[]>([]);
