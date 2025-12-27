@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getRunSummaries } from "./api/qualityApi";
 import MetricTile from "./components/MetricTile";
 import MetricDrilldownDrawer from "./components/MetricDrilldownDrawer";
@@ -49,7 +49,7 @@ function App() {
     return aggregated;
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const runsData = await getRunSummaries();
       console.log("Raw API data:", runsData);
@@ -62,7 +62,7 @@ function App() {
     } catch (error) {
       console.error("Error fetching runs:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
