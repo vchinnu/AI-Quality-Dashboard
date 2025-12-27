@@ -15,21 +15,21 @@ export default function ConversationDetailDrawer({ runId, conversationId, data, 
   };
 
   // const getStatusBadge = (status: string) => {
-    const isPass = status?.toLowerCase() === 'pass';
-    return (
-      <span style={{
-        padding: '2px 8px',
-        borderRadius: '4px',
-        fontSize: '11px',
-        fontWeight: 'bold',
-        backgroundColor: isPass ? '#d4edda' : '#f8d7da',
-        color: isPass ? '#155724' : '#721c24',
-        border: `1px solid ${isPass ? '#c3e6cb' : '#f5c6cb'}`
-      }}>
-        {isPass ? 'Pass' : 'Fail'}
-      </span>
-    );
-  };
+  //   const isPass = status?.toLowerCase() === 'pass';
+  //   return (
+  //     <span style={{
+  //       padding: '2px 8px',
+  //       borderRadius: '4px',
+  //       fontSize: '11px',
+  //       fontWeight: 'bold',
+  //       backgroundColor: isPass ? '#d4edda' : '#f8d7da',
+  //       color: isPass ? '#155724' : '#721c24',
+  //       border: `1px solid ${isPass ? '#c3e6cb' : '#f5c6cb'}`
+  //     }}>
+  //       {isPass ? 'Pass' : 'Fail'}
+  //     </span>
+  //   );
+  // };
 
   const metrics = [
     { key: 'intentResolution', label: 'Intent Resolution' },
