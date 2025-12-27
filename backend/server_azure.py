@@ -28,8 +28,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://*.azurestaticapps.net",
-        "https://*.surge.sh"
+        "https://gray-forest-03d28cf0f.1.azurestaticapps.net",
+        "*"  # Allow all origins for now to debug
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -150,6 +150,11 @@ def load_csv_data():
     global current_dataset_path
     
     try:
+        # Check if file exists
+        if not current_dataset_path or not os.path.exists(current_dataset_path):
+            print(f"File not found: {current_dataset_path}")
+            return []
+            
         # Try to load file content
         file_content = load_file_content(current_dataset_path)
         
@@ -184,8 +189,14 @@ def load_csv_data():
         print(f"Error loading data: {e}")
         return []
 
-# Load data from CSV
-EVALUATION_DATA = load_csv_data()
+# Load data from CSV - with safe error handling for Azure deployment
+try:
+    EVALUATION_DATA = load_csv_data()
+    print(f"Successfully loaded default dataset with {len(EVALUATION_DATA)} runs")
+except Exception as e:
+    print(f"Could not load default dataset: {e}")
+    print("Starting with empty dataset - will load data when file is uploaded")
+    EVALUATION_DATA = []
 
 @app.post("/upload-dataset")
 async def upload_dataset(file: UploadFile = File(...)):
