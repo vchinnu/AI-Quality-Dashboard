@@ -62,51 +62,7 @@ def load_dataset(file_path):
 
 @app.get("/runs")
 def get_runs():
-    """Get all runs from the CSV data"""
-    if not os.path.exists(DATA_PATH):
-        return [load_dataset(DATA_PATH)]
-    
-    try:
-        df = pd.read_csv(DATA_PATH)
-        runs = []
-        
-        # Define metrics we're tracking
-        metrics = ["intent_resolution", "coherence", "relevance", "groundedness", "tool_call_accuracy", "task_adherence", "fluency"]
-        
-        for i, (_, row) in enumerate(df.iterrows()):
-            run_data = {
-                "runId": f"run_{i+1}",
-                "conversation_id": row.get("inputs.conversation_id", ""),
-            }
-            
-            # Process each metric
-            for metric in metrics:
-                result_key = f"{metric}.{metric}.result"
-                
-                # Check if metric passed
-                passed = str(row.get(result_key, "")).lower() == "pass"
-                
-                # Map metric names for frontend compatibility
-                frontend_metric = metric
-                if metric == "intent_resolution":
-                    frontend_metric = "intentResolution"
-                elif metric == "tool_call_accuracy":
-                    frontend_metric = "toolCallAccuracy"
-                elif metric == "task_adherence":
-                    frontend_metric = "taskAdherence"
-                
-                run_data[frontend_metric] = {
-                    "score": 100 if passed else 0,  # Simple binary scoring
-                    "passed": 1 if passed else 0,
-                    "total": 1
-                }
-            
-            runs.append(run_data)
-        
-        return runs
-    except Exception as e:
-        print(f"Error loading runs data: {e}")
-        return [load_dataset(DATA_PATH)]
+    return [load_dataset(DATA_PATH)]
 
 def extract_user_message(query_str):
     """Extract user message from JSON query string"""
@@ -159,36 +115,45 @@ def metric_details(run_id: str, metric: str):
         
         original_metric = metric_map.get(metric, metric)
         
-        # Filter data based on run_id
+        # Handle aggregated view for all runs
         if run_id == "all":
-            # Return data for all conversation IDs
-            filtered_df = df
+            # Return data for all rows
+            for i, (_, row) in enumerate(df.iterrows()):
+                result_key = f"{original_metric}.{original_metric}.result"
+                reason_key = f"{original_metric}.{original_metric}.reason"
+                
+                detail = {
+                    "promptId": f"prompt_{i+1}",
+                    "conversationId": row.get("inputs.conversation_id", ""),
+                    "prompt": extract_user_message(row.get("inputs.query", "")),
+                    "agentResponse": row.get("inputs.response", ""),
+                    "passed": str(row.get(result_key, "")).lower() == "pass",
+                    "confidence": 0.8,  # Default confidence since not in CSV
+                    "reason": row.get(reason_key, "No reason provided")
+                }
+                result.append(detail)
         else:
-            # Filter by specific conversation ID
-            filtered_df = df[df['inputs.conversation_id'] == run_id]
-            if filtered_df.empty:
-                # Fallback: try to find by index if no exact match
-                try:
-                    run_index = int(run_id.replace('run_', '').replace('prompt_', '')) - 1
-                    if 0 <= run_index < len(df):
-                        filtered_df = df.iloc[run_index:run_index+1]
-                except:
-                    pass
-        
-        for i, (_, row) in enumerate(filtered_df.iterrows()):
-            result_key = f"{original_metric}.{original_metric}.result"
-            reason_key = f"{original_metric}.{original_metric}.reason"
-            
-            detail = {
-                "promptId": f"prompt_{i+1}",
-                "conversationId": row.get("inputs.conversation_id", ""),
-                "prompt": extract_user_message(row.get("inputs.query", "")),
-                "agentResponse": row.get("inputs.response", ""),
-                "passed": str(row.get(result_key, "")).lower() == "pass",
-                "confidence": 0.8,  # Default confidence since not in CSV
-                "reason": row.get(reason_key, "No reason provided")
-            }
-            result.append(detail)
+            # For individual runs, extract the run number and get that specific row
+            try:
+                # Extract number from runId (e.g., "run_001" -> 0, "run_1" -> 0)
+                run_number = int(run_id.replace('run_', '').replace('_', '')) - 1
+                if 0 <= run_number < len(df):
+                    row = df.iloc[run_number]
+                    result_key = f"{original_metric}.{original_metric}.result"
+                    reason_key = f"{original_metric}.{original_metric}.reason"
+                    
+                    detail = {
+                        "promptId": f"prompt_{run_number+1}",
+                        "conversationId": row.get("inputs.conversation_id", ""),
+                        "prompt": extract_user_message(row.get("inputs.query", "")),
+                        "agentResponse": row.get("inputs.response", ""),
+                        "passed": str(row.get(result_key, "")).lower() == "pass",
+                        "confidence": 0.8,
+                        "reason": row.get(reason_key, "No reason provided")
+                    }
+                    result.append(detail)
+            except (ValueError, IndexError):
+                pass
         
         return result
     except Exception as e:

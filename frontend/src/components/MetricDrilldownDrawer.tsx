@@ -4,16 +4,35 @@ import { getMetricDetails } from "../api/qualityApi";
 // Helper function to extract clean assistant response text
 // Removed extractAssistantResponse function - using inline logic instead
 
-export default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
+export default function MetricDrilldownDrawer({ runId, metric, data, onClose }: any) {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log("Fetching metric details for", runId, metric);
     setLoading(true);
-    getMetricDetails(runId, metric).then(data => {
-      setRows(data);
-      setLoading(false);
-    });
+    console.log("metrc", metric);
+    const details = data.map((item : any,index:number) => {
+    const rawData = item.raw_data;
+    return {
+        promptId: index + 1,
+        prompt: item.prompt,
+        conversationId: rawData["inputs.conversation_id"],
+        agentResponse: rawData["inputs.response"],
+        passed: String(rawData[`${metric}.${metric}.result`] || "").toLowerCase() == "pass",
+        confidence: "0.8",
+        //reason: rawData["intent_resolution.intent_resolution.reason"]
+        reason: rawData[`${metric}.${metric}.reason`]
+    }});
+    console.log("Metric details from props:", details);
+    setRows(details);
+    setLoading(false);
+    console.log("Metric details set from props:", data);  
+    // getMetricDetails(runId, metric).then(data =>{
+    //  setRows(data);
+    // console.log("Metric details fetched:", data);
+    //setLoading(false);
+    //});
   }, [runId, metric]);
 
   const getStatusColor = (passed: boolean) => {
@@ -132,7 +151,7 @@ export default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
                     if (!responseRaw) return 'No response data available';
                     
                     let assistantResponse = '';
-                    
+                    console.log(responseRaw);
                     try {
                       const parsedResponse = JSON.parse(responseRaw);
                       
@@ -140,6 +159,7 @@ export default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
                       const extractTextFromContent = (content: any): string => {
                         if (typeof content === 'string') return content;
                         if (Array.isArray(content)) {
+                          console.log("Extracting text from content array:", content);
                           for (const item of content) {
                             if (item && item.type === 'text' && item.text) return item.text;
                             if (typeof item === 'string') return item;
@@ -151,12 +171,14 @@ export default function MetricDrilldownDrawer({ runId, metric, onClose }: any) {
                       
                       // Handle array of messages
                       if (Array.isArray(parsedResponse)) {
+                        console.log("Extracting text from parsedResponse array:");
                         for (const item of parsedResponse) {
                           if (item && item.role === 'assistant') {
                             assistantResponse = extractTextFromContent(item.content);
                             if (assistantResponse) break;
                           }
                         }
+                        console.log('Extracted from array:', assistantResponse);
                       }
                       // Handle single message
                       else if (parsedResponse && parsedResponse.role === 'assistant') {

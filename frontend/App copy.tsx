@@ -87,7 +87,7 @@ function App() {
             borderRadius: "12px",
             border: "1px solid #e9ecef"
           }}>
-            <div onClick={() => setSelected({ runId: "all", metric: "tool_call_accuracy", data: runs })} style={{
+            <div onClick={() => setSelected({ runId: "all", metric: "toolCallAccuracy" })} style={{
               background: getColor(Math.round((aggregatedData.toolCallAccuracy.passed / aggregatedData.toolCallAccuracy.total) * 100)),
               padding: "12px",
               borderRadius: "8px",
@@ -116,7 +116,7 @@ function App() {
                 {aggregatedData.toolCallAccuracy.passed}/{aggregatedData.toolCallAccuracy.total}
               </div>
             </div>
-            <div onClick={() => setSelected({ runId: "all", metric: "task_adherence", data: runs })} style={{
+            <div onClick={() => setSelected({ runId: "all", metric: "taskAdherence" })} style={{
               background: getColor(Math.round((aggregatedData.taskAdherence.passed / aggregatedData.taskAdherence.total) * 100)),
               padding: "12px",
               borderRadius: "8px",
@@ -145,7 +145,7 @@ function App() {
                 {aggregatedData.taskAdherence.passed}/{aggregatedData.taskAdherence.total}
               </div>
             </div>
-            <div onClick={() => setSelected({ runId: "all", metric: "intent_resolution",data: runs })} style={{
+            <div onClick={() => setSelected({ runId: "all", metric: "intentResolution" })} style={{
               background: getColor(Math.round((aggregatedData.intentResolution.passed / aggregatedData.intentResolution.total) * 100)),
               padding: "12px",
               borderRadius: "8px",
@@ -174,7 +174,7 @@ function App() {
                 {aggregatedData.intentResolution.passed}/{aggregatedData.intentResolution.total}
               </div>
             </div>
-            <div onClick={() => setSelected({ runId: "all", metric: "groundedness",data: runs })} style={{
+            <div onClick={() => setSelected({ runId: "all", metric: "groundedness" })} style={{
               background: getColor(Math.round((aggregatedData.groundedness.passed / aggregatedData.groundedness.total) * 100)),
               padding: "12px",
               borderRadius: "8px",
@@ -203,7 +203,7 @@ function App() {
                 {aggregatedData.groundedness.passed}/{aggregatedData.groundedness.total}
               </div>
             </div>
-            <div onClick={() => setSelected({ runId: "all", metric: "relevance",data: runs })} style={{
+            <div onClick={() => setSelected({ runId: "all", metric: "relevance" })} style={{
               background: getColor(Math.round((aggregatedData.relevance.passed / aggregatedData.relevance.total) * 100)),
               padding: "12px",
               borderRadius: "8px",
@@ -232,7 +232,7 @@ function App() {
                 {aggregatedData.relevance.passed}/{aggregatedData.relevance.total}
               </div>
             </div>
-            <div onClick={() => setSelected({ runId: "all", metric: "coherence", data: runs })} style={{
+            <div onClick={() => setSelected({ runId: "all", metric: "coherence" })} style={{
               background: getColor(Math.round((aggregatedData.coherence.passed / aggregatedData.coherence.total) * 100)),
               padding: "12px",
               borderRadius: "8px",
@@ -261,7 +261,7 @@ function App() {
                 {aggregatedData.coherence.passed}/{aggregatedData.coherence.total}
               </div>
             </div>
-            <div onClick={() => setSelected({ runId: "all", metric: "fluency", data: runs })} style={{
+            <div onClick={() => setSelected({ runId: "all", metric: "fluency" })} style={{
               background: getColor(Math.round((aggregatedData.fluency.passed / aggregatedData.fluency.total) * 100)),
               padding: "12px",
               borderRadius: "8px",
@@ -352,19 +352,19 @@ function App() {
                 </button>
               </div>
               <MetricTile title="Tool Acc" data={run.toolCallAccuracy}
-                onClick={() => setSelected({ runId: run.runId, metric: "tool_call_accuracy", data: [run] })} />
+                onClick={() => setSelected({ runId: run.runId, metric: "toolCallAccuracy" })} />
               <MetricTile title="Task Adh" data={run.taskAdherence}
-                onClick={() => setSelected({ runId: run.runId, metric: "task_adherence", data: [run] })} />
+                onClick={() => setSelected({ runId: run.runId, metric: "taskAdherence" })} />
               <MetricTile title="Intent" data={run.intentResolution}
-                onClick={() => setSelected({ runId: run.runId, metric: "intent_resolution", data: [run] })} />
+                onClick={() => setSelected({ runId: run.runId, metric: "intentResolution" })} />
               <MetricTile title="Grounded" data={run.groundedness}
-                onClick={() => setSelected({ runId: run.runId, metric: "groundedness", data: [run] })} />
+                onClick={() => setSelected({ runId: run.runId, metric: "groundedness" })} />
               <MetricTile title="Relevance" data={run.relevance}
-                onClick={() => setSelected({ runId: run.runId, metric: "relevance", data: [run] })} />
+                onClick={() => setSelected({ runId: run.runId, metric: "relevance" })} />
               <MetricTile title="Coherence" data={run.coherence}
-                onClick={() => setSelected({ runId: run.runId, metric: "coherence", data: [run] })} />
+                onClick={() => setSelected({ runId: run.runId, metric: "coherence" })} />
               <MetricTile title="Fluency" data={run.fluency}
-                onClick={() => setSelected({ runId: run.runId, metric: "fluency", data: [run] })} />
+                onClick={() => setSelected({ runId: run.runId, metric: "fluency" })} />
             </div>
           ))}
         </div>
